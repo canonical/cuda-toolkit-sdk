@@ -1,4 +1,4 @@
-name: cuda
+name: cuda-toolkit
 adopt-info: cuda
 summary: NVIDIA CUDA Toolkit (apt)
 description: |
