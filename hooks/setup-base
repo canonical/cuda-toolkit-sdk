@@ -7,7 +7,6 @@ CUDA_PACKAGES="${CUDA_PACKAGES:-cuda-toolkit}"
 CUDA_FORCE_REINSTALL="${CUDA_FORCE_REINSTALL:-0}"
 CUDA_KEY_URL="${CUDA_KEY_URL:-https://developer.download.nvidia.com/compute/cuda/repos/${CUDA_APT_SERIES}/x86_64/3bf863cc.pub}"
 CUDA_REPO_URL="${CUDA_REPO_URL:-https://developer.download.nvidia.com/compute/cuda/repos/${CUDA_APT_SERIES}/x86_64}"
-INFO_FILE=/etc/cuda-sdk/install-info
 
 if [ "${CUDA_FORCE_REINSTALL}" != "1" ] && [ -x "${CUDA_ROOT}/bin/nvcc" ]; then
   echo "CUDA already present in ${CUDA_ROOT}; set CUDA_FORCE_REINSTALL=1 to force reinstall."
@@ -32,7 +31,7 @@ apt-get update
 # shellcheck disable=SC2086
 eatmydata apt-get install ${CUDA_PACKAGES}
 
-mkdir -p /etc/profile.d /etc/ld.so.conf.d /etc/cuda-sdk
+mkdir -p /etc/profile.d /etc/ld.so.conf.d
 cat <<EOF | tee /etc/profile.d/cuda-sdk.sh >/dev/null
 export CUDA_HOME=${CUDA_ROOT}
 export PATH=${CUDA_ROOT}/bin:\$PATH
@@ -50,14 +49,5 @@ elif command -v nvcc >/dev/null 2>&1; then
 else
   CUDA_VERSION="unknown"
 fi
-
-cat <<EOF | tee "${INFO_FILE}" >/dev/null
-repo=${CUDA_REPO_URL}
-series=${CUDA_APT_SERIES}
-packages=${CUDA_PACKAGES}
-prefix=${CUDA_ROOT}
-version=${CUDA_VERSION}
-key-url=${CUDA_KEY_URL}
-EOF
 
 echo "Installed CUDA ${CUDA_VERSION} from ${CUDA_REPO_URL} into ${CUDA_ROOT}."
