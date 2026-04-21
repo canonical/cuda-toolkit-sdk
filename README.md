@@ -1,97 +1,9 @@
-<!--
-# SDK README Template for Workshop
+# NVIDIA CUDA Toolkit SDK for Workshop
 
-OVERALL DESIGN (for sdkcraft.yaml description field):
-
-The sdkcraft.yaml `description` field should match the README overview
-paragraph so it can be reused in `sdk info` output. Write it as a short YAML
-multiline string — no sub-headings, no bullet lists. Follow this pattern:
-
-description: |
-  This SDK provides [toolchain/runtime] for [purpose].
-  [Key resources] are persisted on the host to speed up [builds/installs]
-  across workshop updates.
-
-Examples from approved SDKs:
-
-  # go
-  description: |
-    This SDK provides the official Go toolchain for efficient Go
-    development. Module downloads are persisted on the host to speed up builds
-    across workshop updates, and Go environment settings are preserved between
-    workshop updates.
-
-  # node
-  description: |
-    This SDK provides a complete Node.js development environment built from
-    source, with Corepack enabled for flexible package manager choice. Package
-    manager caches are persisted on the host to speed up dependency
-    installations across workshop updates.
-
-README TEMPLATE INSTRUCTIONS:
-
-1. Copy this file to your SDK repository directory as README.md
-2. Replace all placeholders in [SQUARE BRACKETS] with your actual content;
-   replace XYZ, FOO, BAR with real product names
-3. Remove any sections that don't apply to your SDK for simplicity
-4. Delete this comment block before publishing
-5. Test all command examples before publishing
-
-Focus on the SDK's behavior, not the target library/framework documentation.
-Link to upstream docs for product-related specifics.
-
-Do NOT include "Installed components" or "Platforms, channels, versions"
-sections. Component details should be folded into the overview paragraph.
-Channel information belongs in `sdk info`, not the README.
-
-SECTION GUIDE:
-
-Title and description:
-Use the format "[Software Name] SDK for Workshop". Answer: What is it?
-What does it do? Who is it for? Keep it 2-3 compound sentences long.
-Focus on how the SDK affects the user's environment, not on marketing
-language. Avoid phrases like "focus on writing and testing code".
-
-Reference workshop:
-Provide an inline minimal workshop.yaml.
-Explain briefly what the reference demonstrates.
-
-Using the SDK:
-Step-by-step: prerequisite SDKs, project layout, launch, primary workflow.
-All commands must be tested and working. Keep code examples clear about
-whether they run on the host or inside the workshop.
-
-Plugs and slots:
-Document each plug: interface, target/source, purpose.
-Include mounts and persistence details here, and document any tunnels
-alongside other plug types.
-If the SDK relies on resources exposed by other SDKs, say this explicitly.
-Do the same for slots if SDK exposes resources to others.
-Use "workshop updates" (not "restarts" or "sessions") when describing
-what mounts survive.
-
-Documentation and guidance:
-Link to upstream docs.
-
-Community and support:
-Link to forums, support channels, Code of Conduct.
-
-Contributions:
-Link to contribution guides, CONTRIBUTING.md.
-
-License and copyright:
-Include copyright holder, year, license name and link.
-Make sure to include all shipped components.
--->
-
-# [Software Name] SDK for Workshop
-
-[Brief description of what this SDK provides. Should closely match the
-sdkcraft.yaml description. Focus on how the SDK affects the development
-environment: what toolchain/runtime it provides, what it persists on the host,
-and any notable features. Example: "A development environment for Go projects.
-It provides the official Go toolchain, manages module caches via persistent
-mounts, and preserves Go environment settings across workshop updates."]
+NVIDIA CUDA is a parallel computing platform and programming model for NVIDIA
+GPUs. This SDK installs the CUDA Toolkit inside the workshop during setup-base
+using the official NVIDIA CUDA APT repository, placing everything under
+`/usr/local/cuda`.
 
 ---
 
@@ -101,19 +13,31 @@ A minimal workshop:
 
 ```yaml
 # workshop.yaml
-name: [workshop-name]
-base: ubuntu@[version]  # e.g., ubuntu@24.04
+name: cuda-dev
+base: ubuntu@24.04
 sdks:
-  - name: [sdk-name]
-    channel: [channel]  # e.g., 1.24/stable
+  - name: cuda
+    channel: 12.9/stable
 
 actions:
-  [action-name]: |
-    [command]
+  check-gpu: |
+    nvidia-smi
+  compile-sample: |
+    cd /project
+    nvcc -o sample sample.cu
+    ./sample
 ```
 
-[One sentence explaining what this demonstrates, e.g., "This demonstrates a
-basic Go build workflow with persistent module caching."]
+This demonstrates GPU access and CUDA compilation inside a workshop.
+
+### Available tracks
+
+| Track | CUDA series | Platforms |
+|-------|-------------|-----------|
+| `12.9/stable` | CUDA 12.9.x | ubuntu@22.04, ubuntu@24.04 |
+| `12.8/stable` | CUDA 12.8.x | ubuntu@22.04, ubuntu@24.04 |
+| `12.6/stable` | CUDA 12.6.x | ubuntu@22.04, ubuntu@24.04 |
+| `11.8/stable` | CUDA 11.8.x (frozen) | ubuntu@22.04 only |
 
 ---
 
@@ -121,66 +45,57 @@ basic Go build workflow with persistent module caching."]
 
 ### Prerequisites, project layout
 
-1. [List prerequisites, e.g., "This relies on the `uv` SDK for venv."]
-2. [Suggest expected project directory structure, including source code layout
-   and setup steps needed:]
+The SDK installs the NVIDIA CUDA Toolkit from the official NVIDIA APT
+repository and automatically configures `PATH` and library paths. An NVIDIA
+GPU with a compatible driver must be available on the host.
 
-   ```bash
-   [command to clone or prepare sources]
-   ```
+No specific project layout is required. Place your `.cu` files in the project
+directory.
 
-3. [Describe what side effects may happen during launch and refresh.]
+### Run CUDA samples
 
-### [Primary workflow task, e.g., "Build the project"]
+To build a project or run CUDA examples in the workshop:
+
+```bash
+git clone https://github.com/NVIDIA/cuda-samples.git
+workshop launch
+workshop shell
+```
+
+Inside the workshop:
+
+```bash
+cd /project/cuda-samples/Samples/1_Utilities/deviceQuery
+make
+./deviceQuery
+```
+
+### Verify GPU access
 
 Once the workshop is ready:
 
 ```bash
-[workshop run]
-[commands to perform the primary task]
+workshop shell
+nvidia-smi
 ```
 
-[Explain where outputs go and how they persist across workshop updates.]
-
-### [Secondary workflow task, e.g., "Test and run"]
-
-From within the workshop shell:
+This shows detected NVIDIA GPUs, driver version, and CUDA version. To verify
+the compiler:
 
 ```bash
-workshop shell
-[test or run commands]
+nvcc --version
 ```
-
-[Brief explanation of what this achieves.]
 
 ---
 
 ## Plugs (resources this SDK consumes)
 
-### `[plug-name]`
-
-- Interface: `mount`
-- Workshop target: `[/path/inside/workshop]`
-- Purpose: [What this persists between workshop updates.]
-
-### `[plug-name]`
+### `gpu`
 
 - Interface: `gpu`
-- Purpose: Grants access to [AMD/NVIDIA] GPU hardware on the host.
-
--- OR --
-
-This SDK doesn't define any plugs.
+- Purpose: Grants access to NVIDIA GPU hardware on the host.
 
 ## Slots (resources this SDK provides)
-
-### `[slot-name]`
-
-- Interface: `mount`
-- Workshop source: `[/path/inside/workshop]`
-- Purpose: [What resource this exposes to other SDKs]
-
--- OR --
 
 This SDK doesn't define any slots.
 
@@ -188,16 +103,21 @@ This SDK doesn't define any slots.
 
 ## Documentation and guidance
 
-- [[XYZ] official documentation]([upstream-docs-url])
-- [[XYZ] best practices]([public-website-url])
+- [CUDA Toolkit documentation](https://docs.nvidia.com/cuda/)
+- [CUDA samples](https://github.com/NVIDIA/cuda-samples)
+- [Workshop documentation](https://canonical-workshop.readthedocs-hosted.com/latest/)
 
 ---
 
 ## Community and support
 
-- [XYZ] community forum: [Link to upstream forum/community]
-- Please review our [Code of Conduct](https://ubuntu.com/community/ethos/code-of-conduct)
-  before participating.
+- NVIDIA developer community:
+  [NVIDIA Developer Forums](https://forums.developer.nvidia.com/)
+- Workshop forum:
+  [Workshop Discourse](https://discourse.canonical.com/c/engineering/workshops/34)
+- Please review our
+  [Code of Conduct](https://ubuntu.com/community/ethos/code-of-conduct) before
+  participating.
 
 ---
 
@@ -206,13 +126,19 @@ This SDK doesn't define any slots.
 All contributions, including code, documentation updates, and issue reports,
 are welcome!
 
-- See [CONTRIBUTING]([public-github-url]) for guidelines.
-- Open issues or pull requests on the [official repository]([repo-url]).
+- See `CONTRIBUTING.md` for guidelines.
+- Open issues or pull requests on the official repository.
 
 ---
 
 ## License and copyright
 
-Copyright [START YEAR] [COPYRIGHT HOLDER].
+Copyright 2026 Canonical Ltd.
 
-[Include any required claims, information, and disclaimers for your license.]
+This program is free software: you can redistribute it and/or modify it under
+the terms of the
+[GNU Lesser General Public License version 2.1 (LGPLv2.1)](https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html)
+as published by the Free Software Foundation.
+
+[NVIDIA CUDA Toolkit](https://developer.nvidia.com/cuda-toolkit) is subject to
+the [NVIDIA CUDA Toolkit EULA](https://docs.nvidia.com/cuda/eula/).

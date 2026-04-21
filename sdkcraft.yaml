@@ -1,0 +1,34 @@
+name: cuda
+adopt-info: cuda
+summary: NVIDIA CUDA Toolkit (apt)
+description: |
+  NVIDIA CUDA is a parallel computing platform and programming model for
+  NVIDIA GPUs. This SDK installs the CUDA Toolkit inside the workshop
+  during setup-base using the official NVIDIA CUDA APT repository,
+  placing everything under /usr/local/cuda.
+license: LicenseRef-NVIDIA-EULA
+platforms:
+  ubuntu@22.04:amd64:
+  ubuntu@24.04:amd64:
+
+plugs:
+  gpu:
+    interface: gpu
+
+parts:
+  cuda:
+    plugin: nil
+    override-pull: |
+      VERSION=$(cat "$CRAFT_PROJECT_DIR/VERSION")
+      craftctl set version="$VERSION"
+    override-build: |
+      VERSION=$(cat "$CRAFT_PROJECT_DIR/VERSION")
+      echo "$VERSION" > "$CRAFT_PART_INSTALL/version"
+
+      # Map platform to APT series name for the setup-base hook.
+      case "${CRAFT_PLATFORM}" in
+        ubuntu@22.04:amd64) SERIES=ubuntu2204 ;;
+        ubuntu@24.04:amd64) SERIES=ubuntu2404 ;;
+        *)            echo "Unsupported platform: ${CRAFT_PLATFORM}" >&2; exit 1 ;;
+      esac
+      echo "$SERIES" > "$CRAFT_PART_INSTALL/series"

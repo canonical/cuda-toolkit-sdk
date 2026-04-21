@@ -1,0 +1,29 @@
+set -eu
+
+CUDA_ROOT="${CUDA_INSTALL_PREFIX:-/usr/local/cuda}"
+INFO_FILE=/etc/cuda-sdk/install-info
+
+fail() {
+  workshopctl set-health --code="$1" error "$2"
+  exit 0
+}
+
+[ -d "${CUDA_ROOT}" ] || fail "cuda-missing-root" "CUDA_ROOT ${CUDA_ROOT} not found"
+[ -x "${CUDA_ROOT}/bin/nvcc" ] || fail "cuda-missing-nvcc" "nvcc not found under ${CUDA_ROOT}"
+
+VERSION="unknown"
+if [ -f "${CUDA_ROOT}/version.json" ]; then
+  VERSION=$(python3 -c "import json; print(json.load(open('${CUDA_ROOT}/version.json'))['cuda']['version'])" 2>/dev/null || echo "unknown")
+elif nvcc --version >/dev/null 2>&1; then
+  VERSION=$(nvcc --version | grep -oP 'release \K[0-9.]+' || echo "unknown")
+elif [ -f "${INFO_FILE}" ]; then
+  VERSION=$(grep '^version=' "${INFO_FILE}" | cut -d'=' -f2-)
+fi
+
+[ -n "${VERSION}" ] || fail "cuda-version-unknown" "CUDA version unknown"
+
+if command -v nvidia-smi >/dev/null 2>&1; then
+  nvidia-smi >/dev/null 2>&1 || true
+fi
+
+workshopctl set-health okay

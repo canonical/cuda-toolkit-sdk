@@ -1,0 +1,63 @@
+set -eu
+
+CUDA_ROOT="${CUDA_INSTALL_PREFIX:-/usr/local/cuda}"
+CUDA_APT_VERSION="${CUDA_APT_VERSION:-$(cat "$SDK/version")}"
+CUDA_APT_SERIES="${CUDA_APT_SERIES:-$(cat "$SDK/series")}"
+CUDA_PACKAGES="${CUDA_PACKAGES:-cuda-toolkit}"
+CUDA_FORCE_REINSTALL="${CUDA_FORCE_REINSTALL:-0}"
+CUDA_KEY_URL="${CUDA_KEY_URL:-https://developer.download.nvidia.com/compute/cuda/repos/${CUDA_APT_SERIES}/x86_64/3bf863cc.pub}"
+CUDA_REPO_URL="${CUDA_REPO_URL:-https://developer.download.nvidia.com/compute/cuda/repos/${CUDA_APT_SERIES}/x86_64}"
+INFO_FILE=/etc/cuda-sdk/install-info
+
+if [ "${CUDA_FORCE_REINSTALL}" != "1" ] && [ -x "${CUDA_ROOT}/bin/nvcc" ]; then
+  echo "CUDA already present in ${CUDA_ROOT}; set CUDA_FORCE_REINSTALL=1 to force reinstall."
+  exit 0
+fi
+
+apt-get update
+eatmydata apt-get install ca-certificates wget gnupg cmake
+
+mkdir -p /etc/apt/keyrings
+wget -qO- "${CUDA_KEY_URL}" | gpg --dearmor -o /etc/apt/keyrings/cuda.gpg
+echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/cuda.gpg] ${CUDA_REPO_URL} /" \
+  | tee /etc/apt/sources.list.d/cuda.list >/dev/null
+
+cat <<EOF | tee /etc/apt/preferences.d/cuda-pin-600 >/dev/null
+Package: *
+Pin: origin developer.download.nvidia.com
+Pin-Priority: 600
+EOF
+
+apt-get update
+# shellcheck disable=SC2086
+eatmydata apt-get install ${CUDA_PACKAGES}
+
+mkdir -p /etc/profile.d /etc/ld.so.conf.d /etc/cuda-sdk
+cat <<EOF | tee /etc/profile.d/cuda-sdk.sh >/dev/null
+export CUDA_HOME=${CUDA_ROOT}
+export PATH=${CUDA_ROOT}/bin:\$PATH
+EOF
+cat <<EOF | tee /etc/ld.so.conf.d/cuda-sdk.conf >/dev/null
+${CUDA_ROOT}/lib64
+EOF
+
+ldconfig
+
+if [ -f "${CUDA_ROOT}/version.json" ]; then
+  CUDA_VERSION=$(python3 -c "import json; print(json.load(open('${CUDA_ROOT}/version.json'))['cuda']['version'])" 2>/dev/null || echo "unknown")
+elif command -v nvcc >/dev/null 2>&1; then
+  CUDA_VERSION=$(nvcc --version | grep -oP 'release \K[0-9.]+' || echo "unknown")
+else
+  CUDA_VERSION="unknown"
+fi
+
+cat <<EOF | tee "${INFO_FILE}" >/dev/null
+repo=${CUDA_REPO_URL}
+series=${CUDA_APT_SERIES}
+packages=${CUDA_PACKAGES}
+prefix=${CUDA_ROOT}
+version=${CUDA_VERSION}
+key-url=${CUDA_KEY_URL}
+EOF
+
+echo "Installed CUDA ${CUDA_VERSION} from ${CUDA_REPO_URL} into ${CUDA_ROOT}."
