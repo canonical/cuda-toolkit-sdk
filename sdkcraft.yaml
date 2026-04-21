@@ -1,5 +1,5 @@
 name: cuda-toolkit
-adopt-info: cuda
+version: "11.8.0"
 summary: NVIDIA CUDA Toolkit (apt)
 description: |
   NVIDIA CUDA is a parallel computing platform and programming model for
@@ -9,7 +9,6 @@ description: |
 license: LicenseRef-NVIDIA-EULA
 platforms:
   ubuntu@22.04:amd64:
-  ubuntu@24.04:amd64:
 
 plugs:
   gpu:
@@ -19,16 +18,8 @@ parts:
   cuda:
     plugin: nil
     override-pull: |
-      VERSION=$(cat "$CRAFT_PROJECT_DIR/VERSION")
-      craftctl set version="$VERSION"
+      craftctl default
     override-build: |
-      VERSION=$(cat "$CRAFT_PROJECT_DIR/VERSION")
-      echo "$VERSION" > "$CRAFT_PART_INSTALL/version"
+      echo "$CRAFT_PROJECT_VERSION" > "$CRAFT_PART_INSTALL/version"
 
-      # Map platform to APT series name for the setup-base hook.
-      case "${CRAFT_PLATFORM}" in
-        ubuntu@22.04:amd64) SERIES=ubuntu2204 ;;
-        ubuntu@24.04:amd64) SERIES=ubuntu2404 ;;
-        *)            echo "Unsupported platform: ${CRAFT_PLATFORM}" >&2; exit 1 ;;
-      esac
-      echo "$SERIES" > "$CRAFT_PART_INSTALL/series"
+      echo "ubuntu2204" > "$CRAFT_PART_INSTALL/series"
