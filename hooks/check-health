@@ -22,8 +22,32 @@ fi
 
 [ -n "${VERSION}" ] || fail "cuda-version-unknown" "CUDA version unknown"
 
+# Check NVIDIA driver compatibility.
+# Each CUDA toolkit major.minor requires a minimum driver version.
+CUDA_MAJOR_MINOR="${VERSION%.*}"
+case "${CUDA_MAJOR_MINOR}" in
+  12.9) MIN_DRIVER=575 ;;
+  12.8) MIN_DRIVER=570 ;;
+  12.6) MIN_DRIVER=560 ;;
+  12.4) MIN_DRIVER=550 ;;
+  12.2) MIN_DRIVER=535 ;;
+  12.0) MIN_DRIVER=525 ;;
+  11.8) MIN_DRIVER=520 ;;
+  11.7) MIN_DRIVER=515 ;;
+  *)    MIN_DRIVER=0 ;;
+esac
+
 if command -v nvidia-smi >/dev/null 2>&1; then
-  nvidia-smi >/dev/null 2>&1 || true
+  DRIVER_VERSION=$(nvidia-smi --query-gpu=driver_version --format=csv,noheader 2>/dev/null | head -1) || true
+  if [ -n "${DRIVER_VERSION:-}" ]; then
+    DRIVER_MAJOR="${DRIVER_VERSION%%.*}"
+    if [ "${MIN_DRIVER}" -gt 0 ] && [ "${DRIVER_MAJOR}" -lt "${MIN_DRIVER}" ]; then
+      fail "cuda-driver-incompatible" \
+        "CUDA ${VERSION} requires driver >= ${MIN_DRIVER}.x but found ${DRIVER_VERSION}"
+    fi
+  fi
+else
+  fail "cuda-no-gpu" "nvidia-smi not found; no NVIDIA GPU available"
 fi
 
 workshopctl set-health okay
