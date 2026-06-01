@@ -5,8 +5,18 @@ CUDA_APT_VERSION="${CUDA_APT_VERSION:-$(cat "$SDK/version")}"
 CUDA_APT_SERIES="${CUDA_APT_SERIES:-$(cat "$SDK/series")}"
 CUDA_PACKAGES="${CUDA_PACKAGES:-cuda-toolkit}"
 CUDA_FORCE_REINSTALL="${CUDA_FORCE_REINSTALL:-0}"
-CUDA_KEY_URL="${CUDA_KEY_URL:-https://developer.download.nvidia.com/compute/cuda/repos/${CUDA_APT_SERIES}/x86_64/3bf863cc.pub}"
-CUDA_REPO_URL="${CUDA_REPO_URL:-https://developer.download.nvidia.com/compute/cuda/repos/${CUDA_APT_SERIES}/x86_64}"
+
+# NVIDIA names the CUDA repository directory by architecture: x86_64 for amd64
+# and sbsa for arm64. Derive it from the running architecture.
+CUDA_DEB_ARCH="${CUDA_DEB_ARCH:-$(dpkg --print-architecture)}"
+case "${CUDA_DEB_ARCH}" in
+  amd64) CUDA_REPO_ARCH="x86_64" ;;
+  arm64) CUDA_REPO_ARCH="sbsa" ;;
+  *) echo "Unsupported architecture: ${CUDA_DEB_ARCH}" >&2; exit 1 ;;
+esac
+
+CUDA_KEY_URL="${CUDA_KEY_URL:-https://developer.download.nvidia.com/compute/cuda/repos/${CUDA_APT_SERIES}/${CUDA_REPO_ARCH}/3bf863cc.pub}"
+CUDA_REPO_URL="${CUDA_REPO_URL:-https://developer.download.nvidia.com/compute/cuda/repos/${CUDA_APT_SERIES}/${CUDA_REPO_ARCH}}"
 
 if [ "${CUDA_FORCE_REINSTALL}" != "1" ] && [ -x "${CUDA_ROOT}/bin/nvcc" ]; then
   echo "CUDA already present in ${CUDA_ROOT}; set CUDA_FORCE_REINSTALL=1 to force reinstall."
@@ -18,7 +28,7 @@ eatmydata apt-get install ca-certificates wget gnupg cmake
 
 mkdir -p /etc/apt/keyrings
 wget -qO- "${CUDA_KEY_URL}" | gpg --dearmor -o /etc/apt/keyrings/cuda.gpg
-echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/cuda.gpg] ${CUDA_REPO_URL} /" \
+echo "deb [arch=${CUDA_DEB_ARCH} signed-by=/etc/apt/keyrings/cuda.gpg] ${CUDA_REPO_URL} /" \
   | tee /etc/apt/sources.list.d/cuda.list >/dev/null
 
 cat <<EOF | tee /etc/apt/preferences.d/cuda-pin-600 >/dev/null
