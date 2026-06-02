@@ -3,7 +3,12 @@ set -eu
 CUDA_ROOT="${CUDA_INSTALL_PREFIX:-/usr/local/cuda}"
 CUDA_APT_VERSION="${CUDA_APT_VERSION:-$(cat "$SDK/version")}"
 CUDA_APT_SERIES="${CUDA_APT_SERIES:-$(cat "$SDK/series")}"
-CUDA_PACKAGES="${CUDA_PACKAGES:-cuda-toolkit}"
+# Major.minor of the track version, e.g. 12.9.0 -> 12.9 (and 12-9 for apt).
+CUDA_MAJOR_MINOR="$(echo "${CUDA_APT_VERSION}" | cut -d. -f1-2)"
+# Install the VERSION-SPECIFIC toolkit metapackage (e.g. cuda-toolkit-12-9) so
+# the track's CUDA version is honoured. The unversioned `cuda-toolkit` meta
+# always resolves to the newest CUDA in the repo (13.x), ignoring the track.
+CUDA_PACKAGES="${CUDA_PACKAGES:-cuda-toolkit-$(echo "${CUDA_MAJOR_MINOR}" | tr . -)}"
 CUDA_FORCE_REINSTALL="${CUDA_FORCE_REINSTALL:-0}"
 
 CUDA_DEB_ARCH="${CUDA_DEB_ARCH:-$(dpkg --print-architecture)}"
@@ -38,6 +43,12 @@ EOF
 apt-get update
 # shellcheck disable=SC2086
 eatmydata apt-get install ${CUDA_PACKAGES}
+
+# The versioned metapackage installs under /usr/local/cuda-<major.minor>; point
+# the generic CUDA_ROOT path at it if nothing else created the symlink.
+if [ ! -e "${CUDA_ROOT}" ] && [ -d "/usr/local/cuda-${CUDA_MAJOR_MINOR}" ]; then
+  ln -sfn "/usr/local/cuda-${CUDA_MAJOR_MINOR}" "${CUDA_ROOT}"
+fi
 
 mkdir -p /etc/profile.d /etc/ld.so.conf.d
 cat <<EOF | tee /etc/profile.d/cuda-sdk.sh >/dev/null
