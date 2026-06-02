@@ -6,7 +6,6 @@ CUDA_APT_SERIES="${CUDA_APT_SERIES:-$(cat "$SDK/series")}"
 CUDA_PACKAGES="${CUDA_PACKAGES:-cuda-toolkit}"
 CUDA_FORCE_REINSTALL="${CUDA_FORCE_REINSTALL:-0}"
 
-# NVIDIA names the CUDA repository directory by architecture: x86_64 for amd64
 # and sbsa for arm64. Derive it from the running architecture.
 CUDA_DEB_ARCH="${CUDA_DEB_ARCH:-$(dpkg --print-architecture)}"
 case "${CUDA_DEB_ARCH}" in
