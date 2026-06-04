@@ -16,7 +16,7 @@ A minimal workshop:
 name: cuda-dev
 base: ubuntu@24.04
 sdks:
-  - name: cuda
+  - name: cuda-toolkit
     channel: 12.9/stable
 
 actions:
