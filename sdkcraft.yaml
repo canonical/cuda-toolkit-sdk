@@ -7,6 +7,7 @@ description: |
   during setup-base using the official NVIDIA CUDA APT repository,
   placing everything under /usr/local/cuda.
 license: LicenseRef-NVIDIA-EULA
+website: https://github.com/canonical/cuda-toolkit-sdk
 platforms:
   ubuntu@22.04:amd64:
   ubuntu@24.04:amd64:
