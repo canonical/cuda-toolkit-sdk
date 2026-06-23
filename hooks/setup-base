@@ -3,10 +3,23 @@ set -eu
 CUDA_ROOT="${CUDA_INSTALL_PREFIX:-/usr/local/cuda}"
 CUDA_APT_VERSION="${CUDA_APT_VERSION:-$(cat "$SDK/version")}"
 CUDA_APT_SERIES="${CUDA_APT_SERIES:-$(cat "$SDK/series")}"
-CUDA_PACKAGES="${CUDA_PACKAGES:-cuda-toolkit}"
+# Major.minor of the track version, e.g. 12.9.0 -> 12.9 (and 12-9 for apt).
+CUDA_MAJOR_MINOR="$(echo "${CUDA_APT_VERSION}" | cut -d. -f1-2)"
+# Install the VERSION-SPECIFIC toolkit metapackage (e.g. cuda-toolkit-12-9) so
+# the track's CUDA version is honoured. The unversioned `cuda-toolkit` meta
+# always resolves to the newest CUDA in the repo (13.x), ignoring the track.
+CUDA_PACKAGES="${CUDA_PACKAGES:-cuda-toolkit-$(echo "${CUDA_MAJOR_MINOR}" | tr . -)}"
 CUDA_FORCE_REINSTALL="${CUDA_FORCE_REINSTALL:-0}"
-CUDA_KEY_URL="${CUDA_KEY_URL:-https://developer.download.nvidia.com/compute/cuda/repos/${CUDA_APT_SERIES}/x86_64/3bf863cc.pub}"
-CUDA_REPO_URL="${CUDA_REPO_URL:-https://developer.download.nvidia.com/compute/cuda/repos/${CUDA_APT_SERIES}/x86_64}"
+
+CUDA_DEB_ARCH="${CUDA_DEB_ARCH:-$(dpkg --print-architecture)}"
+case "${CUDA_DEB_ARCH}" in
+  amd64) CUDA_REPO_ARCH="x86_64" ;;
+  arm64) CUDA_REPO_ARCH="sbsa" ;;
+  *) echo "Unsupported architecture: ${CUDA_DEB_ARCH}" >&2; exit 1 ;;
+esac
+
+CUDA_KEY_URL="${CUDA_KEY_URL:-https://developer.download.nvidia.com/compute/cuda/repos/${CUDA_APT_SERIES}/${CUDA_REPO_ARCH}/3bf863cc.pub}"
+CUDA_REPO_URL="${CUDA_REPO_URL:-https://developer.download.nvidia.com/compute/cuda/repos/${CUDA_APT_SERIES}/${CUDA_REPO_ARCH}}"
 
 if [ "${CUDA_FORCE_REINSTALL}" != "1" ] && [ -x "${CUDA_ROOT}/bin/nvcc" ]; then
   echo "CUDA already present in ${CUDA_ROOT}; set CUDA_FORCE_REINSTALL=1 to force reinstall."
@@ -18,7 +31,7 @@ eatmydata apt-get install ca-certificates wget gnupg cmake
 
 mkdir -p /etc/apt/keyrings
 wget -qO- "${CUDA_KEY_URL}" | gpg --dearmor -o /etc/apt/keyrings/cuda.gpg
-echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/cuda.gpg] ${CUDA_REPO_URL} /" \
+echo "deb [arch=${CUDA_DEB_ARCH} signed-by=/etc/apt/keyrings/cuda.gpg] ${CUDA_REPO_URL} /" \
   | tee /etc/apt/sources.list.d/cuda.list >/dev/null
 
 cat <<EOF | tee /etc/apt/preferences.d/cuda-pin-600 >/dev/null
@@ -30,6 +43,12 @@ EOF
 apt-get update
 # shellcheck disable=SC2086
 eatmydata apt-get install ${CUDA_PACKAGES}
+
+# The versioned metapackage installs under /usr/local/cuda-<major.minor>; point
+# the generic CUDA_ROOT path at it if nothing else created the symlink.
+if [ ! -e "${CUDA_ROOT}" ] && [ -d "/usr/local/cuda-${CUDA_MAJOR_MINOR}" ]; then
+  ln -sfn "/usr/local/cuda-${CUDA_MAJOR_MINOR}" "${CUDA_ROOT}"
+fi
 
 mkdir -p /etc/profile.d /etc/ld.so.conf.d
 cat <<EOF | tee /etc/profile.d/cuda-sdk.sh >/dev/null

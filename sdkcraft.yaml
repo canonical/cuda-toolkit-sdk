@@ -10,6 +10,8 @@ license: LicenseRef-NVIDIA-EULA
 platforms:
   ubuntu@22.04:amd64:
   ubuntu@24.04:amd64:
+  ubuntu@22.04:arm64:
+  ubuntu@24.04:arm64:
 
 plugs:
   gpu:
@@ -23,10 +25,12 @@ parts:
     override-build: |
       echo "$CRAFT_PROJECT_VERSION" > "$CRAFT_PART_INSTALL/version"
 
-      # Map platform to APT series name for the setup-base hook.
+      # Map platform to APT series name for the setup-base hook. The series is
+      # the same per Ubuntu release across architectures; setup-base selects the
+      # x86_64 or sbsa repository directory at install time.
       case "${CRAFT_PLATFORM}" in
-        ubuntu@22.04:amd64) SERIES=ubuntu2204 ;;
-        ubuntu@24.04:amd64) SERIES=ubuntu2404 ;;
+        ubuntu@22.04:amd64|ubuntu@22.04:arm64) SERIES=ubuntu2204 ;;
+        ubuntu@24.04:amd64|ubuntu@24.04:arm64) SERIES=ubuntu2404 ;;
         *)            echo "Unsupported platform: ${CRAFT_PLATFORM}" >&2; exit 1 ;;
       esac
       echo "$SERIES" > "$CRAFT_PART_INSTALL/series"
