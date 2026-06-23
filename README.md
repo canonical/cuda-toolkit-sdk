@@ -16,7 +16,7 @@ A minimal workshop:
 name: cuda-dev
 base: ubuntu@24.04
 sdks:
-  - name: cuda
+  - name: cuda-toolkit
     channel: 12.9/stable
 
 actions:
@@ -105,7 +105,7 @@ This SDK doesn't define any slots.
 
 - [CUDA Toolkit documentation](https://docs.nvidia.com/cuda/)
 - [CUDA samples](https://github.com/NVIDIA/cuda-samples)
-- [Workshop documentation](https://canonical-workshop.readthedocs-hosted.com/latest/)
+- [Workshop documentation](https://ubuntu.com/workshop/docs/)
 
 ---
 
@@ -114,7 +114,7 @@ This SDK doesn't define any slots.
 - NVIDIA developer community:
   [NVIDIA Developer Forums](https://forums.developer.nvidia.com/)
 - Workshop forum:
-  [Workshop Discourse](https://discourse.canonical.com/c/engineering/workshops/34)
+  [Discourse](https://discourse.ubuntu.com/)
 - Please review our
   [Code of Conduct](https://ubuntu.com/community/ethos/code-of-conduct) before
   participating.
