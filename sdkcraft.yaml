@@ -1,5 +1,5 @@
 name: cuda-toolkit
-adopt-info: cuda
+version: "12.9.0"
 summary: NVIDIA CUDA Toolkit (apt)
 description: |
   NVIDIA CUDA is a parallel computing platform and programming model for
@@ -19,11 +19,9 @@ parts:
   cuda:
     plugin: nil
     override-pull: |
-      VERSION=$(cat "$CRAFT_PROJECT_DIR/VERSION")
-      craftctl set version="$VERSION"
+      craftctl default
     override-build: |
-      VERSION=$(cat "$CRAFT_PROJECT_DIR/VERSION")
-      echo "$VERSION" > "$CRAFT_PART_INSTALL/version"
+      echo "$CRAFT_PROJECT_VERSION" > "$CRAFT_PART_INSTALL/version"
 
       # Map platform to APT series name for the setup-base hook.
       case "${CRAFT_PLATFORM}" in
