@@ -22,5 +22,6 @@ jobs:
       platforms: '["ubuntu@22.04:amd64","ubuntu@24.04:amd64"]'
       platform-flag: "--platform"
       risk: stable
+      promote-to-latest: true
     secrets:
       SDKCRAFT_STORE_CREDENTIALS: ${{ secrets.SDKCRAFT_STORE_CREDENTIALS_PROD }}
